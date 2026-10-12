@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Electric Forklift Energy Dashboard</title>
+<style>
+:root{--navy:#17365d;--blue:#2463a6;--orange:#ed7d31;--bg:#f4f7fb;--ink:#1f2937;--muted:#64748b;--line:#dbe3ee;--white:#fff;--green:#15803d;--red:#b91c1c}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font:14px/1.45 "Segoe UI",Arial,sans-serif;color:var(--ink)}
+header{background:linear-gradient(110deg,#17365d,#245b8f);color:#fff;padding:22px clamp(16px,3vw,36px);display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap}
+h1{font-size:clamp(22px,3vw,30px);margin:0 0 5px}.sub{opacity:.86;font-size:13px}.header-actions{display:flex;gap:8px;flex-wrap:wrap}
+main{max-width:1500px;margin:auto;padding:22px clamp(12px,2vw,28px) 34px}
+.panel{background:#fff;border:1px solid var(--line);border-radius:13px;padding:17px;margin-bottom:16px;box-shadow:0 2px 8px #142c4a08}
+.panel h2{font-size:16px;margin:0 0 13px;color:var(--navy)}
+.filters{display:grid;grid-template-columns:repeat(4,minmax(140px,1fr));gap:12px}
+label{display:block;font-size:12px;color:var(--muted);font-weight:600;margin-bottom:5px}
+input,select{width:100%;padding:10px 11px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:var(--ink);font:inherit;min-height:39px}
+button,.button{border:0;border-radius:8px;background:var(--navy);color:white;padding:10px 14px;font:600 13px "Segoe UI",Arial;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;gap:7px}
+button.secondary,.button.secondary{background:#eaf0f7;color:var(--navy);border:1px solid #d5dfeb}button.orange{background:var(--orange)}button:hover{filter:brightness(1.06)}
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:13px;margin-bottom:16px}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:13px;padding:17px;position:relative;overflow:hidden}
+.kpi:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--blue)}
+.kpi:nth-child(2):before{background:var(--orange)}.kpi:nth-child(3):before{background:#0f9d8a}.kpi:nth-child(4):before{background:#7c63b8}
+.kpi .label{font-size:12px;color:var(--muted);font-weight:600}.kpi .value{font-size:clamp(22px,2.4vw,30px);font-weight:750;margin:7px 0 3px;color:var(--navy);overflow-wrap:anywhere}.kpi .note{font-size:11px;color:var(--muted)}
+.grid2{display:grid;grid-template-columns:1.2fr 1fr;gap:16px}
+.chart-area{min-height:220px;display:flex;align-items:flex-end;gap:12px;padding:18px 8px 4px;border-bottom:1px solid var(--line)}
+.bar-col{flex:1;min-width:0;text-align:center;display:flex;flex-direction:column;justify-content:flex-end;height:190px;gap:7px}
+.bar{width:min(46px,75%);margin:0 auto;background:linear-gradient(180deg,#4f8bc8,#2463a6);border-radius:6px 6px 0 0;min-height:2px}
+.bar-label{font-size:11px;color:var(--muted);overflow-wrap:anywhere}.bar-value{font-size:11px;font-weight:700;color:var(--navy)}
+.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:850px}th,td{padding:10px 11px;border-bottom:1px solid #e8edf4;text-align:left;white-space:nowrap}th{background:#f6f8fb;color:#475569;font-size:11px;text-transform:uppercase;letter-spacing:.03em;position:sticky;top:0}td{font-size:12px}tbody tr:hover{background:#f8fbff}.right{text-align:right}.muted{color:var(--muted)}.status{padding:3px 8px;border-radius:999px;font-size:11px;background:#e8f7ed;color:var(--green)}
+.import-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:16px;align-items:start}
+.notice{border-radius:9px;padding:11px 13px;background:#eff6ff;color:#1e40af;font-size:12px;margin-top:12px}
+.error{background:#fef2f2;color:var(--red)}.success{background:#f0fdf4;color:#166534}
+.small{font-size:12px;color:var(--muted)}.actions{display:flex;gap:8px;flex-wrap:wrap}.empty{text-align:center;color:var(--muted);padding:28px 10px}
+footer{text-align:center;color:#718096;font-size:11px;padding:4px 12px 20px}
+@media(max-width:900px){.filters{grid-template-columns:repeat(2,minmax(0,1fr))}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.grid2,.import-grid{grid-template-columns:1fr}}
+@media(max-width:520px){.filters{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}.kpi{padding:13px}.header-actions button{flex:1}}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>Electric Forklift Energy Dashboard</h1><div class="sub">Regional view · Charging energy, electricity cost and meter records</div></div>
+  <div class="header-actions"><button class="secondary" id="downloadTemplate">Download CSV template</button><button class="orange" id="exportCsv">Export filtered CSV</button></div>
+</header>
+<main>
+  <section class="panel">
+    <h2>1. Import CSV file</h2>
+    <div class="import-grid">
+      <div>
+        <label for="csvFile">Choose a CSV exported from Excel or your charger meter</label>
+        <input id="csvFile" type="file" accept=".csv,text/csv">
+        <div class="actions" style="margin-top:10px"><button id="importBtn">Import CSV</button><button class="secondary" id="loadDemo">Load demo data</button></div>
+        <div class="small" style="margin-top:9px">Required columns: <b>Date, Site_ID, Charger_ID, Meter_Start_kWh, Meter_End_kWh</b>. Column names are case-insensitive; common aliases are supported.</div>
+        <div id="importMessage" class="notice">Accepted date formats: <b>YYYY-MM-DD</b>, <b>DD/MM/YYYY</b>, <b>DD-MM-YYYY</b>, Excel serial dates, and common date-time values. Dates are normalized to <code>YYYY-MM-DD</code>; ambiguous slash dates use Thailand format (DD/MM/YYYY).</div>
+      </div>
+      <div>
+        <label>CSV format example</label>
+        <div class="table-wrap"><table style="min-width:0"><thead><tr><th>Date</th><th>Site_ID</th><th>Charger_ID</th><th>Meter_Start_kWh</th><th>Meter_End_kWh</th></tr></thead><tbody><tr><td>2026-10-09</td><td>WNDC</td><td>BRS01</td><td>2960.3</td><td>3162.4</td></tr></tbody></table></div>
+        <div class="small" style="margin-top:8px">Energy (kWh) = Meter_End_kWh − Meter_Start_kWh. Cost (THB) = Energy × electricity rate. Quoted values like "2,960.3" are supported.</div>
+        <div style="margin-top:10px"><label for="rate">Default electricity rate (THB/kWh)</label><input type="number" id="rate" min="0" step="0.01" value="4.50"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>2. Filters</h2>
+    <div class="filters">
+      <div><label for="siteFilter">Site</label><select id="siteFilter"><option value="">All sites</option></select></div>
+      <div><label for="fromDate">From date</label><input id="fromDate" type="date" value=""></div>
+      <div><label for="toDate">To date</label><input id="toDate" type="date" value=""></div>
+      <div style="display:flex;align-items:end;gap:8px"><button id="applyFilters" style="flex:1">Apply filters</button><button class="secondary" id="resetFilters">Reset</button></div>
+    </div>
+  </section>
+
+  <section class="kpis">
+    <div class="kpi"><div class="label">TOTAL ENERGY</div><div class="value" id="totalKwh">0.0 kWh</div><div class="note">Based on meter end − start</div></div>
+    <div class="kpi"><div class="label">ESTIMATED ELECTRICITY COST</div><div class="value" id="totalCost">฿0.00</div><div class="note">Uses rate in THB/kWh</div></div>
+    <div class="kpi"><div class="label">METER RECORDS</div><div class="value" id="recordCount">0</div><div class="note">Valid imported records in current filter</div></div>
+    <div class="kpi"><div class="label">AVERAGE ENERGY / RECORD</div><div class="value" id="avgKwh">0.0 kWh</div><div class="note">Mean kWh per meter record</div></div>
+    <div class="kpi"><div class="label">AVERAGE / DAY</div><div class="value" id="avgDayKwh">0.0 kWh</div><div class="note">Total energy ÷ days with records</div></div>
+  </section>
+
+  <section class="grid2">
+    <div class="panel"><h2>Energy by site</h2><div id="siteChart" class="chart-area"><div class="empty">Import CSV data to view chart.</div></div></div>
+    <div class="panel"><h2>Daily energy trend</h2><div id="dailyChart" class="chart-area"><div class="empty">Import CSV data to view chart.</div></div></div>
+  </section>
+
+  <section class="panel">
+    <h2>3. Meter records</h2>
+    <div class="small" style="margin-bottom:10px">The table shows validated records only. Imported data stays in this browser session and is not sent to OneDrive or a server.</div>
+    <div class="table-wrap"><table><thead><tr><th>Date</th><th>Site</th><th>Charger</th><th class="right">Start kWh</th><th class="right">End kWh</th><th class="right">Energy kWh</th><th class="right">Cost THB</th></tr></thead><tbody id="recordsBody"><tr><td colspan="7" class="empty">No records loaded. Import a CSV or load demo data.</td></tr></tbody></table></div>
+  </section>
+</main>
+<footer>Electric Forklift Energy Dashboard · Battery-swap energy tracking · CSV-only · No OneDrive or Microsoft Graph connection</footer>
+<script>
+(function(){
+'use strict';
+let allRows=[];
+const $=id=>document.getElementById(id);
+const aliases={
+ date:['date','reading_date','record_date','charging_date'],
+ site:['site_id','site','location','dc','warehouse'],
+ forklift:['forklift_id','forklift','vehicle_id','truck_id'],
+ charger:['charger_id','charger','charging_station_id'],
+ meter:['meter_id','meter','meter_no'],
+ start:['meter_start_kwh','meter_start_kwh_value','meter_start','meter_start_reading','meter_sta','start_kwh','start_reading','start'],
+ end:['meter_end_kwh','meter_end_kwh_value','meter_end','meter_end_reading','meter_end_','meter_end_k','meter_end_value','end_kwh','end_reading','end'],
+ rate:['rate_thb_kwh','electricity_rate','rate','tariff']
+};
+function norm(s){return String(s??'').replace(/^\uFEFF/,'').trim().toLowerCase().replace(/[\s\-]+/g,'_')}
+function parseDateToISO(value){
+ const s=String(value??'').replace(/^\uFEFF/,'').trim();
+ if(!s)return '';
+ // Validate a numeric year-month-day without relying on browser locale.
+ function makeISO(y,m,d){
+  y=Number(y);m=Number(m);d=Number(d);
+  if(!Number.isInteger(y)||!Number.isInteger(m)||!Number.isInteger(d)||y<1900||y>2200)return '';
+  const dt=new Date(Date.UTC(y,m-1,d));
+  if(dt.getUTCFullYear()!==y||dt.getUTCMonth()!==m-1||dt.getUTCDate()!==d)return '';
+  return String(y).padStart(4,'0')+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+ }
+ // Excel serial date (Excel's usual 1900 date system). Accept plausible date serials only.
+ if(/^\d{4,6}(?:\.0+)?$/.test(s)){
+  const serial=Number(s);
+  if(serial>=1&&serial<=109574){
+   const dt=new Date(Date.UTC(1899,11,30)+Math.floor(serial)*86400000);
+   return makeISO(dt.getUTCFullYear(),dt.getUTCMonth()+1,dt.getUTCDate());
+  }
+ }
+ // ISO date or ISO date-time; use the date part to avoid timezone shifting.
+ let m=s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?:[Tt\s].*)?$/);
+ if(m)return makeISO(m[1],m[2],m[3]);
+ // Thai/European style: DD/MM/YYYY or DD-MM-YYYY. Slash dates are interpreted DD/MM/YYYY.
+ m=s.match(/^(\d{1,2})[/. -](\d{1,2})[/. -](\d{4})(?:\s+.*)?$/);
+ if(m){
+  const a=Number(m[1]),b=Number(m[2]),y=Number(m[3]);
+  if(a>12)return makeISO(y,b,a);
+  if(b>12)return makeISO(y,a,b);
+  return makeISO(y,b,a); // Thailand locale: day/month/year when ambiguous
+ }
+ // Dates exported as "9 Oct 2026" or "October 9, 2026"
+ const monthNames={jan:1,january:1,feb:2,february:2,mar:3,march:3,apr:4,april:4,may:5,jun:6,june:6,jul:7,july:7,aug:8,august:8,sep:9,sept:9,september:9,oct:10,october:10,nov:11,november:11,dec:12,december:12};
+ m=s.match(/^(\d{1,2})[\s-]+([A-Za-z]+)[,\s-]+(\d{4})$/);
+ if(m&&monthNames[m[2].toLowerCase()])return makeISO(m[3],monthNames[m[2].toLowerCase()],m[1]);
+ m=s.match(/^([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})$/);
+ if(m&&monthNames[m[1].toLowerCase()])return makeISO(m[3],monthNames[m[1].toLowerCase()],m[2]);
+ return '';
+}
+function parseCsv(text){
+ const rows=[];let row=[],field='',quoted=false;
+ for(let i=0;i<text.length;i++){const c=text[i],n=text[i+1];
+  if(c==='"'&&quoted&&n==='"'){field+='"';i++}
+  else if(c==='"'){quoted=!quoted}
+  else if(c===','&&!quoted){row.push(field);field=''}
+  else if((c==='\n'||c==='\r')&&!quoted){if(c==='\r'&&n==='\n')i++;row.push(field);if(row.some(v=>String(v).trim()!==''))rows.push(row);row=[];field=''}
+  else field+=c;
+ }
+ if(field.length||row.length){row.push(field);if(row.some(v=>String(v).trim()!==''))rows.push(row)}
+ if(rows.length<2)throw new Error('CSV must contain a header row and at least one data row.');
+ const headers=rows[0].map(norm);
+ const find=(key)=>{const candidates=[key,...(aliases[key]||[])].map(norm);return headers.findIndex(h=>candidates.includes(h))};
+ const idx={};for(const key of Object.keys(aliases))idx[key]=find(key);
+ const required=['date','site','charger','start','end'];
+ const missing=required.filter(k=>idx[k]<0);
+ if(missing.length)throw new Error('Missing required column(s): '+missing.map(k=>({date:'Date',site:'Site_ID',charger:'Charger_ID',start:'Meter_Start_kWh',end:'Meter_End_kWh'}[k])).join(', '));
+ const valid=[],errors=[];
+ for(let i=1;i<rows.length;i++){
+  const r=rows[i];const line=i+1;
+  const get=k=>idx[k]<0?'':String(r[idx[k]]??'').trim();
+  const rawDate=get('date');
+  const isoDate=parseDateToISO(rawDate);
+  if(!isoDate){errors.push(`Row ${line}: invalid/missing date "${rawDate}". Accepted formats: YYYY-MM-DD, DD/MM/YYYY, DD-MM-YYYY, Excel date serial, or date-time. Example: 2026-10-09.`);continue}
+  const startRaw=get('start'),endRaw=get('end');
+  const parseNumber=(v)=>{
+   let s=String(v??'').trim().replace(/[\\s฿]/g,'');
+   if(!s)return NaN;
+   if(s.includes(',')&&s.includes('.'))s=s.replace(/,/g,'');
+   else if((s.match(/,/g)||[]).length>1)s=s.replace(/,/g,'');
+   else if(/^-?\\d{1,3},\\d{3}$/.test(s))s=s.replace(/,/g,'');
+   else if(/^-?\\d+,\\d{1,2}$/.test(s))s=s.replace(',','.');
+   return Number(s);
+  };
+  const start=parseNumber(startRaw),end=parseNumber(endRaw);
+  if(!get('site')||!get('charger')){errors.push(`Row ${line}: missing Site_ID or Charger_ID.`);continue}
+  if(startRaw===''||endRaw===''||!Number.isFinite(start)||!Number.isFinite(end)){errors.push(`Row ${line}: meter readings must be valid numbers (Start="${startRaw}", End="${endRaw}"). Check blank cells, text, or unquoted thousands separators.`);continue}
+  if(end<start){errors.push(`Row ${line}: Meter_End_kWh is lower than Meter_Start_kWh.`);continue}
+  const rateRaw=get('rate');const rate=rateRaw!==''&&Number.isFinite(Number(rateRaw))?Number(rateRaw):Number($('rate').value||4.5);
+  valid.push({date:isoDate,site:get('site'),forklift:get('forklift'),charger:get('charger'),meter:get('meter'),start,end,kwh:end-start,rate,cost:(end-start)*rate});
+ }
+ return {valid,errors};
+}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function fmt(n,d=1){return Number(n||0).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d})}
+function money(n){return '฿'+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function filtered(){
+ const site=$('siteFilter').value,from=$('fromDate').value,to=$('toDate').value;
+ return allRows.filter(r=>(!site||r.site===site)&&(!from||r.date>=from)&&(!to||r.date<=to));
+}
+function fillSelect(id,values,placeholder){const sel=$(id),old=sel.value;sel.innerHTML=`<option value="">${placeholder}</option>`+values.sort().map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');if(values.includes(old))sel.value=old}
+function updateOptions(){fillSelect('siteFilter',[...new Set(allRows.map(r=>r.site))],'All sites')}
+function drawBars(id,entries,unit){
+ const root=$(id);if(!entries.length){root.innerHTML='<div class="empty">No data for selected filters.</div>';return}
+ const max=Math.max(...entries.map(e=>e.value),0.0001);
+ root.innerHTML=entries.map(e=>`<div class="bar-col" title="${esc(e.label)}: ${fmt(e.value,1)} ${unit}"><div class="bar-value">${fmt(e.value,1)}</div><div class="bar" style="height:${Math.max(2,e.value/max*130)}px"></div><div class="bar-label">${esc(e.label)}</div></div>`).join('');
+}
+function render(){
+ const rows=filtered(),kwh=rows.reduce((s,r)=>s+r.kwh,0),cost=rows.reduce((s,r)=>s+r.cost,0);
+ const daysWithRecords=new Set(rows.map(r=>r.date)).size;
+ const avgDayKwh=daysWithRecords?kwh/daysWithRecords:0;
+ $('totalKwh').textContent=fmt(kwh,1)+' kWh';$('totalCost').textContent=money(cost);$('recordCount').textContent=rows.length.toLocaleString('en-US');$('avgKwh').textContent=fmt(rows.length?kwh/rows.length:0,1)+' kWh';$('avgDayKwh').textContent=fmt(avgDayKwh,1)+' kWh';
+ const bySite={};rows.forEach(r=>bySite[r.site]=(bySite[r.site]||0)+r.kwh);
+ drawBars('siteChart',Object.entries(bySite).sort((a,b)=>b[1]-a[1]).map(([label,value])=>({label,value})),'kWh');
+ const byDate={};rows.forEach(r=>byDate[r.date]=(byDate[r.date]||0)+r.kwh);
+ drawBars('dailyChart',Object.entries(byDate).sort((a,b)=>a[0].localeCompare(b[0])).slice(-8).map(([label,value])=>({label,value})),'kWh');
+ $('recordsBody').innerHTML=rows.length?rows.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(r=>`<tr><td>${esc(r.date)}</td><td>${esc(r.site)}</td><td>${esc(r.charger)}</td><td class="right">${fmt(r.start,2)}</td><td class="right">${fmt(r.end,2)}</td><td class="right"><b>${fmt(r.kwh,2)}</b></td><td class="right">${money(r.cost)}</td></tr>`).join(''):'<tr><td colspan="7" class="empty">No records match the current filters.</td></tr>';
+}
+function message(text,type='notice'){$('importMessage').className='notice '+(type==='error'?'error':type==='success'?'success':'');$('importMessage').textContent=text}
+$('importBtn').addEventListener('click',async()=>{
+ const file=$('csvFile').files[0];if(!file){message('Please choose a CSV file first.','error');return}
+ try{const parsed=parseCsv(await file.text());if(!parsed.valid.length){message('No valid rows found. '+parsed.errors.slice(0,8).join(' '),'error');return}
+ allRows=parsed.valid;updateOptions();render();message(`Imported ${parsed.valid.length} valid row(s). ${parsed.errors.length?parsed.errors.length+' row(s) skipped. '+parsed.errors.slice(0,5).join(' '):'All rows validated successfully.'}`,parsed.errors.length?'error':'success');
+ }catch(e){message(e.message||'Unable to read CSV file.','error')}
+});
+$('applyFilters').addEventListener('click',render);
+$('resetFilters').addEventListener('click',()=>{$('siteFilter').value='';$('fromDate').value='';$('toDate').value='';render()});
+$('rate').addEventListener('change',()=>{allRows=allRows.map(r=>({...r,cost:r.kwh*r.rate}));render()});
+$('downloadTemplate').addEventListener('click',()=>{
+ const csv='Date,Site_ID,Charger_ID,Meter_Start_kWh,Meter_End_kWh,Rate_THB_kWh\n2026-10-09,WNDC,BRS01,2960.3,3162.4,4.50\n';
+ download('electric_forklift_csv_template.csv',csv);
+});
+$('exportCsv').addEventListener('click',()=>{
+ const rows=filtered();const header=['Date','Site_ID','Charger_ID','Meter_Start_kWh','Meter_End_kWh','Energy_kWh','Rate_THB_kWh','Cost_THB'];
+ const csv=[header.join(','),...rows.map(r=>[r.date,r.site,r.charger,r.start,r.end,r.kwh,r.rate,r.cost].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(','))].join('\r\n');
+ download('electric_forklift_filtered_records.csv',csv);
+});
+function download(name,content){const blob=new Blob([content],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();URL.revokeObjectURL(url)}
+$('loadDemo').addEventListener('click',()=>{
+ allRows=[
+ {date:'2026-10-07',site:'NDC',forklift:'FL-001',charger:'CH-01',meter:'MTR-01',start:1200,end:1228.5,rate:4.5},
+ {date:'2026-10-08',site:'NDC',forklift:'FL-001',charger:'CH-01',meter:'MTR-01',start:1228.5,end:1257.1,rate:4.5},
+ {date:'2026-10-09',site:'NDC',forklift:'FL-002',charger:'CH-02',meter:'MTR-02',start:800,end:823.7,rate:4.5},
+ {date:'2026-10-09',site:'LLK',forklift:'FL-011',charger:'CH-03',meter:'MTR-03',start:400,end:429.2,rate:4.5},
+ {date:'2026-10-08',site:'RDC',forklift:'FL-021',charger:'CH-04',meter:'MTR-04',start:930,end:952.4,rate:4.5}
+ ].map(r=>({...r,kwh:r.end-r.start,cost:(r.end-r.start)*r.rate}));
+ updateOptions();render();message('Demo data loaded. Replace it with your own CSV when ready.','success');
+});
+render();
+})();
+</script>
+</body>
+</html>
